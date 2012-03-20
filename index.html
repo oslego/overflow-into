@@ -1,0 +1,114 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>CSS Regions - overflow: into() playground</title>
+    <meta charset="UTF-8">
+    <style type="text/css">
+      
+    
+    .box{
+        width: 25%;
+        height: 120px;
+        float: left;
+        padding: 20px;
+        margin: 30px 20px 0 0;   
+        outline: 1px solid red;
+    }
+    
+    #box1 *{
+        overflow: into(#box2, #box3);
+    }
+    
+    </style>
+</head>
+<body>
+     <div class="box" id="box1">   
+        <h1>overflow: into()</h1>         
+        <p>
+            This page uses an experimental rule in CSS to overflow content from one element to another. 
+        </p>              
+        
+        <p>
+            The syntax is: <code>selector{ overflow: into(selector) }</code>
+        </p>
+        
+        <p>
+            Under the covers, there's some JavaScript that assigns the source content to dynamically generated named flows. Then it assigns the named flows to the target elements - the regions.
+        </p>                                                                                         
+        
+     </div>                                                             
+     
+     <div class="box" id="box2"></div> 
+     <div class="box" id="box3"></div> 
+     
+     <script type="text/javascript" src="cssParser.js"></script>
+     <script type="text/javascript">
+      
+     // ye' ole dirty JavaScript to do the trick!      
+     
+     // Daniel Glazman's CSS parser: JSCSSP 
+      var parser = new CSSParser();         
+      
+      // get the first stylesheet
+      var sheet = parser.parse(document.querySelector("style").innerHTML, false, true);    
+      
+      // storage for the "overflow: into()" rules
+      var shortHands = []; 
+      
+      // pull out the selectors which have any "overflow" property
+      var overflows = sheet.cssRules.filter(function(rule){ 
+          
+          var decs = rule.declarations.filter(function(declaration){     
+              return declaration.property == "overflow"                
+          })         
+          
+          return decs.length
+      })         
+      
+      // look for "overflow: into()" rules
+      overflows.forEach(function(rule){        
+        var intoSelector = null;
+
+        rule.declarations.forEach(function(declaration){ 
+          if (declaration.valueText.indexOf("into") !== -1){  
+             
+             // pull out the "target" selectors from the "overflow: into()" rule
+             var sel = declaration.valueText.match(/into\(([\w\W]+)\)$/);  
+             
+             if (sel && sel.length){
+                 intoSelector = sel[1]     
+             }
+          }
+        }) 
+         
+        // store the from "source" and "target" selectors
+        if (intoSelector)
+           shortHands.push({
+               "from": rule.mSelectorText,
+               "into": intoSelector
+           })
+      })     
+                                        
+                          
+      // storage for named flow rules                    
+      var flowRules = [];
+      
+      // build CSS rules for named flows
+      shortHands.forEach(function(rule){ 
+          var tempFlowName = "temp_" + new Date().getTime(); 
+           
+          flowRules.push(rule.from + "{\n" + "-webkit-flow-into:" + tempFlowName  + "; \n}")
+          flowRules.push(rule.into + "{\n" + "-webkit-flow-from:" + tempFlowName  + "; \n}");
+      })  
+      
+      
+      // create a new stylesheet with the named flow rules
+      var tempStyle = document.createElement("style");
+      tempStyle.type = "text/css";  
+      tempStyle.innerHTML = flowRules.join("\n");  
+      document.getElementsByTagName("head")[0].appendChild(tempStyle);
+      
+     </script>
+     
+</body>
+</html>
