@@ -13,10 +13,16 @@
         padding: 20px;
         margin: 30px 20px 0 0;   
         outline: 1px solid red;
-    }
+    }    
     
-    #box1 *{
+    #box1 * {
         overflow: into(#box2, #box3);
+    }   
+    
+    @template{
+        @slot{
+            border: none;
+        }
     }
     
     </style>
@@ -41,50 +47,42 @@
      <div class="box" id="box2"></div> 
      <div class="box" id="box3"></div> 
      
-     <script type="text/javascript" src="cssParser.js"></script>
+     <script type="text/javascript" src="cssparser.js"></script>
      <script type="text/javascript">
       
      // ye' ole dirty JavaScript to do the trick!      
      
-     // Daniel Glazman's CSS parser: JSCSSP 
       var parser = new CSSParser();         
       
       // get the first stylesheet
-      var sheet = parser.parse(document.querySelector("style").innerHTML, false, true);    
+      parser.parse(document.querySelector("style").innerHTML, false, true);    
       
       // storage for the "overflow: into()" rules
       var shortHands = []; 
       
       // pull out the selectors which have any "overflow" property
-      var overflows = sheet.cssRules.filter(function(rule){ 
+      var overflows = parser.cssRules.filter(function(rule){ 
           
-          var decs = rule.declarations.filter(function(declaration){     
-              return declaration.property == "overflow"                
-          })         
-          
-          return decs.length
-      })         
+          return rule.style["overflow"]
+      })                              
       
       // look for "overflow: into()" rules
       overflows.forEach(function(rule){        
-        var intoSelector = null;
-
-        rule.declarations.forEach(function(declaration){ 
-          if (declaration.valueText.indexOf("into") !== -1){  
-             
+        var intoSelector = null; 
+        
+        if (rule.style["overflow"].indexOf("into") !== -1){    
              // pull out the "target" selectors from the "overflow: into()" rule
-             var sel = declaration.valueText.match(/into\(([\w\W]+)\)$/);  
+             var sel = rule.style["overflow"].match(/into\(([\w\W]+)\)$/);  
              
              if (sel && sel.length){
                  intoSelector = sel[1]     
-             }
-          }
-        }) 
-         
+             }    
+        }
+
         // store the from "source" and "target" selectors
         if (intoSelector)
            shortHands.push({
-               "from": rule.mSelectorText,
+               "from": rule.selectorText,
                "into": intoSelector
            })
       })     
